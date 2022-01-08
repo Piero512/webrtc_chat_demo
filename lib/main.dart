@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:simple_peer_websocket_chat/pages/discovery_page.dart';
 
 void main() {

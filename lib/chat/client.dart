@@ -17,4 +17,8 @@ class ChatClient {
       json.encode({'from': userName, 'message': message}),
     );
   }
+
+  Future<void> close() async {
+    await channel.sink.close(0, 'Disconnecting');
+  }
 }

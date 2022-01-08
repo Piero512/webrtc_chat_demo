@@ -1,6 +1,13 @@
+import 'package:faker/faker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:simple_peer_websocket_chat/chat/chat_connection_bloc.dart';
+import 'package:simple_peer_websocket_chat/chat/chat_provider.dart';
+import 'package:simple_peer_websocket_chat/dialogs/IPDialog.dart';
 import 'package:simple_peer_websocket_chat/mdns/mdns_discovery_bloc.dart';
+
+import '../models/peer.dart';
+import 'chat_page.dart';
 
 class PeerResults extends StatelessWidget {
   const PeerResults({Key? key}) : super(key: key);
@@ -30,6 +37,7 @@ class PeerResults extends StatelessWidget {
                   .add(SearchForService('_socketchat._tcp'));
             },
             child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
               child: Container(
                 height: constraints.maxHeight,
                 width: constraints.maxWidth,
@@ -76,13 +84,60 @@ class DiscoveryPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     ElevatedButton(
-                        onPressed: () {},
-                        child: Text("Conectar por direccion")),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => IPDialog(
+                              onConnect: (ip, port) async {
+                                print("IP: $ip, port: $port");
+                                var address = Uri(
+                                  scheme: "ws",
+                                  port: int.tryParse(port),
+                                  host: ip,
+                                );
+                                var client = await ChatProvider.connectToPeer(
+                                  faker.internet.userName(),
+                                  Peer(
+                                    "Nombre del peer",
+                                    address.toString(),
+                                  ),
+                                );
+
+                                Navigator.of(ctx).pop();
+                                Navigator.of(ctx).push(MaterialPageRoute(
+                                  builder: (ctx) => BlocProvider(
+                                    create: (ctx) => ChatConnectionBloc(client),
+                                    child: ChatPage(),
+                                  ),
+                                ));
+                              },
+                            ),
+                          );
+                        },
+                        child: Text("Direct Connection")),
                     ElevatedButton(
-                        onPressed: () {}, child: Text("Host a server"))
+                        onPressed: () async {
+                          // Host a server.
+                          var server = await ChatProvider.hostServer(
+                            faker.internet.userName(),
+                          );
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (ctx) =>
+                                  BlocProvider<ChatConnectionBloc>(
+                                    create: (ctx) => ChatConnectionBloc(server),
+                                    child: ChatPage(),
+                              ),
+                            ),
+                          );
+                        },
+                        child: Text("Host a server"))
                   ],
                 ),
               ),
+            ),
+            Divider(
+              thickness: 1,
             ),
             Expanded(child: PeerResults()),
           ],
