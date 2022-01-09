@@ -24,7 +24,7 @@ class PeerResults extends StatelessWidget {
         return ListView.builder(
           itemBuilder: (ctx, index) {
             var peer = state.discovered[index];
-            return Text("Name: ${peer.name} IP: ${peer.address}");
+            return ListTile(title: Text("Name: ${peer.name} IP: ${peer.address}"),);
           },
           itemCount: state.discovered.length,
         );
