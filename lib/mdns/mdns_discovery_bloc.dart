@@ -12,7 +12,7 @@ part 'mdns_discovery_state.dart';
 class MDNSDiscoveryBloc extends Bloc<MDNSDiscoveryEvent, MDNSDiscoveryState> {
   List<Peer> cache = [];
   BonsoirDiscovery? _client;
-  MDNSDiscoveryBloc() :  super(InitialZeroconfState());
+  MDNSDiscoveryBloc() : super(InitialZeroconfState());
 
   @override
   Stream<MDNSDiscoveryState> mapEventToState(MDNSDiscoveryEvent event) async* {
@@ -24,16 +24,16 @@ class MDNSDiscoveryBloc extends Bloc<MDNSDiscoveryEvent, MDNSDiscoveryState> {
         await client.ready;
         client.start();
         var stream = client.eventStream;
-        if(stream != null){
+        if (stream != null) {
           try {
-            await for (var event in stream.timeout(Duration(seconds: 5))){
+            await for (var event in stream.timeout(Duration(seconds: 5))) {
               if (event.type ==
                   BonsoirDiscoveryEventType.DISCOVERY_SERVICE_RESOLVED) {
                 var srv = event.service as ResolvedBonsoirService;
                 print("Resolved service: $srv");
                 var ip = srv.ip;
                 if (ip != null && !(ip.startsWith("169.254"))) {
-                  cache.add(Peer(srv.name, ip));
+                  cache.add(Peer(srv.name, "ws://$ip:${srv.port}"));
                   yield ServicesFound(List.from(cache));
                 } else if (ip?.startsWith("169.254") ?? false) {
                   print("Received link-local IP? : $srv");
@@ -47,7 +47,7 @@ class MDNSDiscoveryBloc extends Bloc<MDNSDiscoveryEvent, MDNSDiscoveryState> {
           } on TimeoutException {
             client.stop();
             _client = null;
-            if(cache.isEmpty){
+            if (cache.isEmpty) {
               yield NoServicesFound();
             }
           }
@@ -58,12 +58,11 @@ class MDNSDiscoveryBloc extends Bloc<MDNSDiscoveryEvent, MDNSDiscoveryState> {
         yield ZeroconfNotSupported();
       }
     }
-
   }
 
   @override
   Future<void> close() async {
-    if(state != ZeroconfNotSupported()){
+    if (state != ZeroconfNotSupported()) {
       _client?.stop();
     }
     super.close();

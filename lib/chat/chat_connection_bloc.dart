@@ -23,18 +23,24 @@ class ChatConnectionBloc
   }
 
   ChatConnectionBloc(this.client)
-      : super(ChatConnectionState(ConnectionStatus.CONNECTED, []));
+      : super(ChatConnectionState(ConnectionStatus.CONNECTED, [])) {
+    client.rxChain.listen((event) {
+      this.add(NewMessageReceived(event));
+    });
+  }
 
   @override
   Stream<ChatConnectionState> mapEventToState(
     ChatConnectionEvent event,
   ) async* {
     if (event is SendMessage) {
-      cachedMessages.add(ChatMessage(
-          arrival: DateTime.now(), from: userName, message: event.message));
+      var chatMessage = ChatMessage(
+          arrival: DateTime.now(), from: userName, message: event.message);
+      client.sendMessage(chatMessage);
       yield state.copyWith(messages: List.from(cachedMessages));
     } else if (event is NewMessageReceived) {
-      yield state.copyWith(messages: cachedMessages + [event.message]);
+      cachedMessages.add(event.message);
+      yield state.copyWith(messages: List.from(cachedMessages));
     } else if (event is Disconnected) {
       yield state.copyWith(status: ConnectionStatus.DISCONNECTED);
     }

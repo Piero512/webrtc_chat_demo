@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:bonsoir/bonsoir.dart';
@@ -18,32 +17,30 @@ class ChatProvider {
   final String userName;
   final SendCallback sendMessage;
   final OnCloseCallback close;
-  ChatProvider({
-    required this.rxChain,
-    required this.sendMessage,
-    required this.userName,
-    required this.close
-  });
+  ChatProvider(
+      {required this.rxChain,
+      required this.sendMessage,
+      required this.userName,
+      required this.close});
 
   static Future<ChatProvider> connectToPeer(String username, Peer peer) async {
     var channel = await WebSocketChannel.connect(Uri.parse(peer.address));
     var client = ChatClient(channel: channel, userName: username);
     return ChatProvider(
-      rxChain: client.messages,
-      sendMessage: (msg) async {
-        try {
-          client.sendMessage(json.encode(msg.toJson()));
-        } catch (e) {
-          print("Exception received while sending: $e");
-          return false;
-        }
-        return true;
-      },
-      userName: username,
-      close: () {
-        return client.close();
-      }
-    );
+        rxChain: client.messages,
+        sendMessage: (msg) async {
+          try {
+            client.sendMessage(msg);
+          } catch (e) {
+            print("Exception received while sending: $e");
+            return false;
+          }
+          return true;
+        },
+        userName: username,
+        close: () {
+          return client.close();
+        });
   }
 
   static Future<ChatProvider> hostServer(String userName) async {
@@ -56,14 +53,13 @@ class ChatProvider {
     ));
     var server = ChatServer(httpServer, bcast);
     return ChatProvider(
-      rxChain: server.messages,
-      sendMessage: (msg) {
-        return server.broadcast(msg);
-      },
-      userName: userName,
-      close: () {
-        return server.stop();
-      }
-    );
+        rxChain: server.messages,
+        sendMessage: (msg) {
+          return server.sendMessage(msg);
+        },
+        userName: userName,
+        close: () {
+          return server.stop();
+        });
   }
 }

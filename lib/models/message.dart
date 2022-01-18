@@ -12,14 +12,14 @@ class ChatMessage extends Equatable {
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
-        arrival: json['arrival'] ?? DateTime.now(),
+        arrival: DateTime.tryParse(json['arrival']) ?? DateTime.now(),
         from: json['from'] as String,
         message: json['message'] as String,
       );
 
   Map<String, dynamic> toJson() =>
-      {'arrival': arrival, 'from': from, 'message': message};
+      {'arrival': arrival.toIso8601String(), 'from': from, 'message': message};
 
   @override
-  List<Object?> get props => [arrival,from,message];
+  List<Object?> get props => [arrival, from, message];
 }

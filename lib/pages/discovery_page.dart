@@ -1,4 +1,5 @@
 import 'package:faker/faker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:simple_peer_websocket_chat/chat/chat_connection_bloc.dart';
@@ -8,6 +9,23 @@ import 'package:simple_peer_websocket_chat/mdns/mdns_discovery_bloc.dart';
 
 import '../models/peer.dart';
 import 'chat_page.dart';
+
+void _openChatScreen(
+  BuildContext ctx,
+  ChatProvider provider,
+  String userName,
+) {
+  Navigator.of(ctx).push(
+    MaterialPageRoute(
+      builder: (ctx) => BlocProvider<ChatConnectionBloc>(
+        create: (ctx) => ChatConnectionBloc(provider),
+        child: ChatPage(
+          userName: userName,
+        ),
+      ),
+    ),
+  );
+}
 
 class PeerResults extends StatelessWidget {
   const PeerResults({Key? key}) : super(key: key);
@@ -24,7 +42,14 @@ class PeerResults extends StatelessWidget {
         return ListView.builder(
           itemBuilder: (ctx, index) {
             var peer = state.discovered[index];
-            return ListTile(title: Text("Name: ${peer.name} IP: ${peer.address}"),);
+            return ListTile(
+              title: Text("Name: ${peer.name} IP: ${peer.address}"),
+              onTap: () async {
+                final userName = faker.internet.userName();
+                final client = await ChatProvider.connectToPeer(userName, peer);
+                _openChatScreen(context, client, userName);
+              },
+            );
           },
           itemCount: state.discovered.length,
         );
@@ -66,6 +91,31 @@ class PeerResults extends StatelessWidget {
 class DiscoveryPage extends StatelessWidget {
   const DiscoveryPage({Key? key}) : super(key: key);
 
+  Future<void> hostServer(BuildContext context) async {
+    var userName = faker.internet.userName();
+    var server = await ChatProvider.hostServer(
+      userName,
+    );
+    _openChatScreen(context, server, userName);
+  }
+
+  Future<void> connectPeer(BuildContext context, String ip, String port) async {
+    var address = Uri(
+      scheme: "ws",
+      port: int.tryParse(port),
+      host: ip,
+    );
+    var userName = faker.internet.userName();
+    var client = await ChatProvider.connectToPeer(
+      userName,
+      Peer(
+        "Nombre del peer",
+        address.toString(),
+      ),
+    );
+    _openChatScreen(context, client, userName);
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -88,49 +138,14 @@ class DiscoveryPage extends StatelessWidget {
                           showDialog(
                             context: context,
                             builder: (ctx) => IPDialog(
-                              onConnect: (ip, port) async {
-                                print("IP: $ip, port: $port");
-                                var address = Uri(
-                                  scheme: "ws",
-                                  port: int.tryParse(port),
-                                  host: ip,
-                                );
-                                var client = await ChatProvider.connectToPeer(
-                                  faker.internet.userName(),
-                                  Peer(
-                                    "Nombre del peer",
-                                    address.toString(),
-                                  ),
-                                );
-
-                                Navigator.of(ctx).pop();
-                                Navigator.of(ctx).push(MaterialPageRoute(
-                                  builder: (ctx) => BlocProvider(
-                                    create: (ctx) => ChatConnectionBloc(client),
-                                    child: ChatPage(),
-                                  ),
-                                ));
-                              },
+                              onConnect: (ip, port) =>
+                                  connectPeer(context, ip, port),
                             ),
                           );
                         },
                         child: Text("Direct Connection")),
                     ElevatedButton(
-                        onPressed: () async {
-                          // Host a server.
-                          var server = await ChatProvider.hostServer(
-                            faker.internet.userName(),
-                          );
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (ctx) =>
-                                  BlocProvider<ChatConnectionBloc>(
-                                    create: (ctx) => ChatConnectionBloc(server),
-                                    child: ChatPage(),
-                              ),
-                            ),
-                          );
-                        },
+                        onPressed: !kIsWeb ? () => hostServer(context) : null,
                         child: Text("Host a server"))
                   ],
                 ),

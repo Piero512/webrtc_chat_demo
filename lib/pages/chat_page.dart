@@ -1,31 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:faker/faker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:simple_peer_websocket_chat/chat/chat_connection_bloc.dart';
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({Key? key}) : super(key: key);
+  final String userName;
+  const ChatPage({Key? key, required this.userName}) : super(key: key);
 
   @override
   _ChatPageState createState() => _ChatPageState();
 }
 
 class _ChatPageState extends State<ChatPage> {
-  final String userName = Faker().internet.userName();
-
+  final controller = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Your user name is: $userName"),
+        title: Text("Your user name is: ${widget.userName}"),
       ),
       body: Column(
         children: [
           Expanded(
-            child: ChatView(userName),
+            flex: 9,
+            child: ChatView(widget.userName),
           ),
           Flexible(
-            child: SizedBox(),
+            child: ColoredBox(
+              color: Colors.grey,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    controller: controller,
+                    onSubmitted: (String msg) {
+                      context.read<ChatConnectionBloc>().add(SendMessage(msg));
+                      controller.clear();
+                    },
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -94,10 +108,9 @@ class ChatView extends StatelessWidget {
             var chatMessage = state.messages[index];
             return ChatBubble(
                 text: chatMessage.message,
-                isCurrentUser: chatMessage.from != userName);
+                isCurrentUser: chatMessage.from == userName);
           },
           itemCount: state.messages.length,
-          reverse: true,
         );
       },
     );

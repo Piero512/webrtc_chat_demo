@@ -22,19 +22,19 @@ class ChatServer {
   void onNewConnection(WebSocket newSocket) {
     newSocket.listen((event) {
       if (event is String) {
-        _controller.add(ChatMessage.fromJson(json.decode(event)));
+        var msg = ChatMessage.fromJson(json.decode(event));
+        sendMessage(msg);
       } else {
         print("Received unknown stuff: $event");
       }
     });
-    newSocket.addStream(messages.map((event) => json.encode(event.toJson())));
     sockets.add(newSocket);
   }
 
   Future<void> stop() async {
     assert(!stopped, 'Trying to dispose of this server twice!');
     await _controller.close();
-    for(var socket in sockets){
+    for (var socket in sockets) {
       await socket.close();
     }
     sockets = [];
@@ -43,12 +43,17 @@ class ChatServer {
     stopped = true;
   }
 
-  Future<bool> broadcast(ChatMessage msg) async{
+  Future<bool> sendMessage(ChatMessage msg) {
+    _controller.add(msg);
+    return broadcast(msg);
+  }
+
+  Future<bool> broadcast(ChatMessage msg) async {
     try {
-      for(var socket in sockets){
+      for (var socket in sockets) {
         socket.add(json.encode(msg.toJson()));
       }
-    } catch(e){
+    } catch (e) {
       print("Exception received while broadcasting message: $e");
       return false;
     }
