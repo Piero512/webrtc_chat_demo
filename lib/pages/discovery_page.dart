@@ -21,6 +21,7 @@ void _openChatScreen(
         create: (ctx) => ChatConnectionBloc(provider),
         child: ChatPage(
           userName: userName,
+          peer: provider.peer
         ),
       ),
     ),
@@ -109,7 +110,7 @@ class DiscoveryPage extends StatelessWidget {
     var client = await ChatProvider.connectToPeer(
       userName,
       Peer(
-        "Nombre del peer",
+        "Direct IP",
         address.toString(),
       ),
     );

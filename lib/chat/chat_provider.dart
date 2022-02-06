@@ -17,49 +17,54 @@ class ChatProvider {
   final String userName;
   final SendCallback sendMessage;
   final OnCloseCallback close;
+  final Peer peer;
+
   ChatProvider(
       {required this.rxChain,
       required this.sendMessage,
       required this.userName,
-      required this.close});
+      required this.close,
+      required this.peer});
 
   static Future<ChatProvider> connectToPeer(String username, Peer peer) async {
     var channel = await WebSocketChannel.connect(Uri.parse(peer.address));
     var client = ChatClient(channel: channel, userName: username);
     return ChatProvider(
-        rxChain: client.messages,
-        sendMessage: (msg) async {
-          try {
-            client.sendMessage(msg);
-          } catch (e) {
-            print("Exception received while sending: $e");
-            return false;
-          }
-          return true;
-        },
-        userName: username,
-        close: () {
-          return client.close();
-        });
+      peer: peer,
+      rxChain: client.messages,
+      sendMessage: (msg) async {
+        try {
+          client.sendMessage(msg);
+        } catch (e) {
+          print("Exception received while sending: $e");
+          return false;
+        }
+        return true;
+      },
+      userName: username,
+      close: () => client.close(),
+    );
   }
 
   static Future<ChatProvider> hostServer(String userName) async {
     var httpServer = await HttpServer.bind(InternetAddress.anyIPv6, 0);
+    var serverPort = httpServer.port;
     var bcast = BonsoirBroadcast(
         service: BonsoirService(
       name: "Chat de $userName",
       type: "_socketchat._tcp",
-      port: httpServer.port,
+      port: serverPort,
     ));
+    print("Server port: ${serverPort}");
     var server = ChatServer(httpServer, bcast);
     return ChatProvider(
-        rxChain: server.messages,
-        sendMessage: (msg) {
-          return server.sendMessage(msg);
-        },
-        userName: userName,
-        close: () {
-          return server.stop();
-        });
+      peer: Peer(userName, "0.0.0.0:${serverPort}"),
+      rxChain: server.messages,
+      sendMessage: (msg) {
+        return server.sendMessage(msg);
+      },
+      userName: userName,
+      close: () => server.stop(),
+    );
   }
 }

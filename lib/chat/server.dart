@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:bonsoir/bonsoir.dart';
+import 'package:flutter/services.dart';
 import 'package:simple_peer_websocket_chat/models/message.dart';
 
 class ChatServer {
@@ -16,7 +17,9 @@ class ChatServer {
     server.transform(WebSocketTransformer()).listen(onNewConnection);
     bcast.ready.then((_) {
       return bcast.start();
-    });
+    }).catchError((err){
+      print("Broadcast not supported");
+    }, test: (err) => err is MissingPluginException);
   }
 
   void onNewConnection(WebSocket newSocket) {
