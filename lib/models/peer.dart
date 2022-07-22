@@ -8,4 +8,8 @@ class Peer extends Equatable {
 
   @override
   List<Object?> get props => [name,address];
+
+  @override
+  bool? get stringify => true;
+
 }
