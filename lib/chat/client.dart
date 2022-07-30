@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:simple_peer_websocket_chat/models/message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/status.dart' as status;
 
 class ChatClient {
   final String userName;
@@ -25,6 +26,6 @@ class ChatClient {
   }
 
   Future<void> close() async {
-    await channel.sink.close(0, 'Disconnecting');
+    await channel.sink.close(status.goingAway, 'Leaving');
   }
 }

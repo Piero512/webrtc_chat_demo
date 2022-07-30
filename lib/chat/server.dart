@@ -17,20 +17,26 @@ class ChatServer {
     server.transform(WebSocketTransformer()).listen(onNewConnection);
     bcast.ready.then((_) {
       return bcast.start();
-    }).catchError((err){
+    }).catchError((err) {
       print("Broadcast not supported");
     }, test: (err) => err is MissingPluginException);
   }
 
   void onNewConnection(WebSocket newSocket) {
-    newSocket.listen((event) {
-      if (event is String) {
-        var msg = ChatMessage.fromJson(json.decode(event));
-        sendMessage(msg);
-      } else {
-        print("Received unknown stuff: $event");
-      }
-    });
+    newSocket.listen(
+      (event) {
+        if (event is String) {
+          var msg = ChatMessage.fromJson(json.decode(event));
+          sendMessage(msg);
+        } else {
+          print("Received unknown stuff: $event");
+        }
+      },
+      onDone: () {
+        // Dispose of disconnected client sockets.
+        sockets.remove(newSocket);
+      },
+    );
     sockets.add(newSocket);
   }
 
@@ -47,13 +53,14 @@ class ChatServer {
   }
 
   Future<bool> sendMessage(ChatMessage msg) {
+    assert(!stopped, 'The server is stopped!');
     _controller.add(msg);
     return broadcast(msg);
   }
 
   Future<bool> broadcast(ChatMessage msg) async {
     try {
-      for (var socket in sockets) {
+      for (final socket in sockets) {
         socket.add(json.encode(msg.toJson()));
       }
     } catch (e) {
